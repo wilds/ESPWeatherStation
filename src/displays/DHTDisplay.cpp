@@ -1,6 +1,6 @@
 /**The MIT License (MIT)
 
-Copyright (c) 2016 by Wilds
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,10 @@ SOFTWARE.
 #include "DHTDisplay.h"
 
 DHTDisplay::DHTDisplay(uint8_t pin, uint8_t type, bool metric) : dht(pin, type) {
-  
+
   this->pin = pin;
   this->metric = metric;
-  
+
   if (type == DHT22)
     DHTTEXT=  "DHT22";
   else if (type == DHT21)
@@ -41,18 +41,19 @@ DHTDisplay::DHTDisplay(uint8_t pin, uint8_t type, bool metric) : dht(pin, type) 
 void DHTDisplay::init(float seconds) {
 
   dht.begin(55);
+  _init = true;
 
   tickerUpdate.attach(seconds, std::bind(&DHTDisplay::setReadyForUpdate, this));
 }
 
 void DHTDisplay::draw(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
- 
+
   //FrameParameter* parameter = (FrameParameter*) state->userData;
 
   display->setTextAlignment(TEXT_ALIGN_CENTER);
   display->setFont(ArialMT_Plain_10);
   display->drawString(64 + x, 0, DHTTEXT + " Indoor Sensor"); // + String((int)parameter->id)
-  
+
   display->setFont(Meteocons_Plain_21);
   display->drawString(30 + x, 12, "'");
   display->drawString(30 + x, 30, "M");
@@ -73,6 +74,8 @@ void DHTDisplay::triggerUpdate() {
 }
 
 void DHTDisplay::update() {
+  if (!_init)
+    return;
 
   // fix for stablity
   digitalWrite(pin, HIGH);
@@ -100,10 +103,10 @@ void DHTDisplay::update() {
 
   float h = dht.readHumidity();
   float t = dht.readTemperature(!metric);
-  
+
   Serial.print("DHT t: "); Serial.print(t);
   Serial.print(" h: "); Serial.println(h);
-  
+
   if (!isnan(h) && !isnan(t) && h>=0 && h<=100) {
     data.humidity = h;
     data.temperature = t;

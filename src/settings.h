@@ -49,7 +49,7 @@ See more at http://blog.squix.ch
 #define HOSTNAME "ESP8266-OTA-"
 
 // Setup
-const int UPDATE_INTERVAL_SECS = 30 * 60; // Update every 10 minutes
+const int UPDATE_INTERVAL_SECS = 30 * 60; // Update every 30 minutes
 
 #ifdef spiOLED
 // Pin definitions for SPI OLED
@@ -61,8 +61,6 @@ const int UPDATE_INTERVAL_SECS = 30 * 60; // Update every 10 minutes
 #ifdef i2cOLED
 // Pin definitions for I2C OLED
 const int I2C_DISPLAY_ADDRESS = 0x3c;
-// const int SDA_PIN = 0;
-// const int SDC_PIN = 2;
 const int SDA_PIN = D2;
 const int SDC_PIN = D1;
 #endif
@@ -70,12 +68,12 @@ const int SDC_PIN = D1;
 // DHT Settings
 // Uncomment whatever type you're using!
 
-#define DHTPIN D2 // NodeMCU
-//#define DHTPIN D4 // Wemos D1R2 Mini
+//#define DHTPIN D2 // NodeMCU
+#define DHTPIN D4 // Wemos D1R2 Mini
 
-#define DHTTYPE DHT11   // DHT 11
-//#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
-//#define DHTTYPE DHT21   // DHT 21 (AM2301)
+#define DHTTYPE DHT11     // DHT 11
+//#define DHTTYPE DHT22     // DHT 22 (AM2302), AM2321
+//#define DHTTYPE DHT21     // DHT 21 (AM2301)
 
 
 
@@ -90,12 +88,12 @@ const int SDC_PIN = D1;
 
 #ifdef Rome
 //DST rules for Central European Time Zone
-#define UTC_OFFSET +1
+#define UTC_OFFSET +1    //TODO deprecated - use config
 struct dstRule StartRule = {"CEST", Last, Sun, Mar, 2, 3600 * 1}; // Central European Summer Time = UTC/GMT +2 hours
 struct dstRule EndRule = {"CET", Last, Sun, Oct, 2, 3600 * 0};       // Central European Time = UTC/GMT +1 hour
 
 // Uncomment for 24 Hour style clock
-#define STYLE_24HR
+#define STYLE_24HR      //TODO deprecated - use config
 
 #define NTP_SERVERS "0.ch.pool.ntp.org", "1.ch.pool.ntp.org", "2.ch.pool.ntp.org"
 
@@ -105,7 +103,7 @@ struct dstRule EndRule = {"CET", Last, Sun, Oct, 2, 3600 * 0};       // Central 
 String OPEN_WEATHER_MAP_APP_ID = "1179a7fb31447b316339ddc0d070f4b8";
 /*
 Go to https://openweathermap.org/find?q= and search for a location. Go through the
-result set and select the entry closest to the actual location you want to display 
+result set and select the entry closest to the actual location you want to display
 data for. It'll be a URL like https://openweathermap.org/city/2657896. The number
 at the end is what you assign to the constant below.
  */
@@ -142,19 +140,11 @@ SSD1306Spi display(OLED_RESET, OLED_DC, OLED_CS);  // SPI OLED
 SSD1306Wire display(I2C_DISPLAY_ADDRESS, SDA_PIN, SDC_PIN);  // I2C OLED
 #endif
 
+#define CONFIG "/user.json"
 
 
 // Setup simpleDSTadjust Library rules
 simpleDSTadjust dstAdjusted(StartRule, EndRule);
-
-/*
-const char* MQTT_BROKER = "farmer.cloudmqtt.com";
-const uint16_t MQTT_PORT = 13630;
-const char* MQTT_USER = "uhxrllbh";
-const char* MQTT_PASSWORD = "PUut7doEUIdn";
-*/
-
-#define CONFIG "/user.json"
 
 
 /***************************

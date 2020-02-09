@@ -1,6 +1,6 @@
 /**The MIT License (MIT)
 
-Copyright (c) 2016 by Wilds
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@ SOFTWARE.
 #ifndef __NTC_H__
 #define __NTC_H__
 
- 
+
 // resistance at 25 degrees C
-#define THERMISTORNOMINAL 100000      
+#define THERMISTORNOMINAL 100000
 // temp. for nominal resistance (almost always 25 C)
 #define TEMPERATURENOMINAL 25
 // how many samples to take and average, more takes longer

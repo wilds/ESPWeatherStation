@@ -1,6 +1,6 @@
 /**The MIT License (MIT)
 
-Copyright (c) 2016 by Wilds
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,8 @@ void SunMoonDisplay::init(float seconds) {
 }
 
 String SunMoonDisplay::formatTime(time_t timestamp) {
-  time_t now = dstAdjusted->time(timestamp, nullptr);
-  struct tm * timeinfo = localtime(&now);
+  //time_t now = dstAdjusted->time(timestamp, nullptr);
+  struct tm * timeinfo = localtime(&timestamp);
   char time_str[11];
   if (style24h) {
     sprintf(time_str, "%02d:%02d\n", timeinfo->tm_hour, timeinfo->tm_min);

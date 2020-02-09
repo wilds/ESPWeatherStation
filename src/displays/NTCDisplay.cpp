@@ -1,6 +1,6 @@
 /**The MIT License (MIT)
 
-Copyright (c) 2016 by Wilds
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -74,20 +74,20 @@ float vThermistor = 0; //analogRead(A0);  // multipex.readValue(1);
    delay(10);
   }
   currentPos = (currentPos + NUMSAMPLES);
-  
+
   if (currentPos > currentBufferSize) {
     currentBufferSize = currentPos;
   }
   currentPos = currentPos % NUMSAMPLES_BUFFERSIZE;
-  for (int i = 0; i < currentBufferSize; ++i) 
+  for (int i = 0; i < currentBufferSize; ++i)
   {
     vThermistor += ntcSamples[i];
   }
   vThermistor /= currentBufferSize;
-  
+
   float rThermistor = SERIESRESISTOR / (1023 / vThermistor - 1);
   float tKelvin = (BCOEFFICIENT * (TEMPERATURENOMINAL + 273.15)) /  (BCOEFFICIENT + ((TEMPERATURENOMINAL + 273.15) * log(rThermistor / THERMISTORNOMINAL)));
-  float tCelsius = tKelvin - 273.15;  // convert kelvin to celsius 
+  float tCelsius = tKelvin - 273.15;  // convert kelvin to celsius
   ntcTemperature = tCelsius;
 
   Serial.print("NTC v: "); Serial.print(vThermistor);

@@ -1,6 +1,6 @@
 /**The MIT License (MIT)
 
-Copyright (c) 2016 by Wilds
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -74,6 +74,8 @@ protected:
     String DHTTEXT;
 
     DHTReturn data;
+
+    boolean _init = false;
 
     void (*_updateCallback)(DHTDisplay*) = NULL;
 };

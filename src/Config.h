@@ -1,7 +1,7 @@
 
 /**The MIT License (MIT)
 
-Copyright (c) 2016 by Wilds
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@ class Config
     String _file;
 
     String mqttBrokerURL = "";   // IP or Address (DO NOT include http://)
-    int mqttBrokerPort = 80;        // the port you are running (usually 80);
+    int mqttBrokerPort = 80;     // the port you are running (usually 80);
     String mqttUser = "";
     String mqttPassword = "";
 
@@ -53,7 +53,7 @@ class Config
 
     String themeColor = "light-blue"; // this can be changed later in the web interface.
 
-        
+
     void write() {
         // Save decoded message to SPIFFS file for playback on power up.
         File f = SPIFFS.open(_file, "w");

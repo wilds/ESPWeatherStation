@@ -22,35 +22,46 @@ SOFTWARE.
 
 */
 
-#ifndef __FORECAST_DISPLAY_H__
-#define __FORECAST_DISPLAY_H__
+#ifndef __BME280_DISPLAY_H__
+#define __BME280_DISPLAY_H__
 
-#include <time.h>
 #include <OLEDDisplayUi.h>
 #include <Ticker.h>
 
-#include <OpenWeatherMapForecast.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
 
 #include "fonts/WeatherStationFonts.h"
 
-const uint8_t MAX_FORECASTS = 6;
+#define SEALEVELPRESSURE_HPA (1013.25)
 
-class ForecastDisplay {
+typedef struct BME280Return {
+    float humidity = NAN;
+    float temperature = NAN;
+    float pressure = NAN;
+    float altitude = NAN;
+} BME280Return;
+
+class BME280Display /*: public AbstractDisplay<DHTReturn>*/ {
 public:
 
-    ForecastDisplay(String appId, String locationId, bool metric = true, String language = "it");
+    BME280Display(bool metric = true);
 
     void init(float seconds);
 
     void draw(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
     void draw2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
-
     bool isReadyForUpdate();
     void triggerUpdate();
     void update();
-protected:
 
-    void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex);
+    BME280Return getData() {
+        return data;
+    }
+
+    //called when AP mode and config portal is started
+    void setUpdateCallback( void (*func)(BME280Display*) );
+protected:
 
     void setReadyForUpdate();
     boolean isValidNumber(String str);
@@ -58,14 +69,18 @@ protected:
     Ticker tickerUpdate;
     bool readyForUpdate = true; // flag changed in the ticker function every 10 minutes
 
-    OpenWeatherMapForecastData forecasts[MAX_FORECASTS];
-    OpenWeatherMapForecast forecastClient;
-
+    // Initialize the sensor
+    Adafruit_BME280 bme;
+    uint8_t pin;
     boolean metric;
-    String language;
-    String appId;
-    String locationId;
-    String location;
+
+    String BMETEXT;
+
+    BME280Return data;
+
+    boolean _init = false;
+
+    void (*_updateCallback)(BME280Display*) = NULL;
 };
 
 #endif

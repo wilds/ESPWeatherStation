@@ -1,6 +1,7 @@
 /**The MIT License (MIT)
 
 Copyright (c) 2016 by Daniel Eichhorn
+Copyright (c) 2019 by Wilds
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +37,9 @@ See more at http://blog.squix.ch
 #include "displays/WeatherDisplay.h"
 #include "displays/ForecastDisplay.h"
 #include "displays/DHTDisplay.h"
+#include "displays/BME280Display.h"
 #include "displays/NTCDisplay.h"
 #include "displays/SunMoonDisplay.h"
-
-//#include <JsonListener.h>
-#include <ThingspeakClient.h>
 
 //ThingSpeak
 #include <ThingSpeak.h>
@@ -48,12 +47,9 @@ See more at http://blog.squix.ch
 //MQTT
 #include <PubSubClient.h>
 
-
 #include "fonts/WeatherStationImages.h"
 #include "fonts/DSEG7Classic-BoldFont.h"
 
-
-//#include "multiplex.h"
 #include "Config.h"
 
 
@@ -61,19 +57,18 @@ See more at http://blog.squix.ch
 #define PRINT_DEBUG_MESSAGES
 OLEDDisplayUi   ui( &display );
 
-// Initialize Wunderground client with METRIC setting
+// Initialize OpenWeatherMap client with METRIC setting
 WeatherDisplay weatherDisplay(OPEN_WEATHER_MAP_APP_ID, OPEN_WEATHER_MAP_LOCATION_ID, IS_METRIC, OPEN_WEATHER_MAP_LANGUAGE);
 ForecastDisplay forecastDisplay(OPEN_WEATHER_MAP_APP_ID, OPEN_WEATHER_MAP_LOCATION_ID, IS_METRIC, OPEN_WEATHER_MAP_LANGUAGE);
 DHTDisplay dhtDisplay(DHTPIN, DHTTYPE, IS_METRIC);
+BME280Display bmeDisplay(IS_METRIC);
 void dhtUpdateCallback(DHTDisplay* myDHTDisplay);
+void bmeUpdateCallback(DHTDisplay* myDHTDisplay);
 NTCDisplay ntcDisplay(DHTPIN, IS_METRIC);
 SunMoonDisplay sunmoonDisplay(0, 0, &dstAdjusted);
 
 
-//Multiplex multipex(D5, D6, D7, A0);
-
 WiFiClient client;
-ThingspeakClient thingspeak;
 
 WiFiClient mqttClient;
 PubSubClient mqtt(mqttClient);
@@ -97,12 +92,6 @@ void initData(OLEDDisplay *display);
 
 void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 
-
-void drawUnifiedSensor(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);  //Adafruit_Sensor
-
-void drawThingspeak(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
-
-
 Config config(String(CONFIG));
 
 int8_t getWifiQuality();
@@ -114,14 +103,6 @@ struct FrameParameter {
   void *extra = nullptr;
 };
 
-/*
-struct  UnifiedSensorFrameParameter {
-  UnifiedSensorFrameParameter() : id(0) {}
-  UnifiedSensorFrameParameter(uint64_t _id) : id(_id) {}
-  uint64_t     id                = 0;
-  Adafruit_Sensor *sensors;
-};
-*/
 
 // Add frames
 // this array keeps function pointers to all frames
@@ -142,9 +123,14 @@ FrameCallback frames[] = {
       dhtDisplay.draw(display, state, x, y);
     },
     [](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+      bmeDisplay.draw(display, state, x, y);
+    },
+    [](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+      bmeDisplay.draw2(display, state, x, y);
+    },
+    [](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
       ntcDisplay.draw(display, state, x, y);
     },
-    /*drawThingspeak,*/
     [](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
       forecastDisplay.draw(display, state, x, y);
     },
@@ -152,9 +138,9 @@ FrameCallback frames[] = {
       forecastDisplay.draw2(display, state, x, y);
     }
 };
-int numberOfFrames = 7;
+int numberOfFrames = 9;
 
-FrameParameter parameters[] = {{}, {}, {}, FrameParameter(1), FrameParameter(2), {}, {}, {}};
+FrameParameter parameters[] = {{}, {}, {}, FrameParameter(1), FrameParameter(2), {}, {}, {}, {}};
 
 OverlayCallback overlays[] = { drawHeaderOverlay };
 int numberOfOverlays = 1;
@@ -194,7 +180,7 @@ void setup() {
   display.init();
   display.clear();
   display.display();
-  
+
   //display.flipScreenVertically();  // Comment out to flip display 180deg
   display.setFont(ArialMT_Plain_10);
   display.setTextAlignment(TEXT_ALIGN_CENTER);
@@ -205,6 +191,7 @@ void setup() {
   display.drawString(88, 8, "Weather Station\nBy Squix78\nmods by Neptune\nWilds");
   display.display();
 
+  WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   // Uncomment for testing wifi manager
   //wifiManager.resetSettings();
   wifiManager.setAPCallback(configModeCallback);
@@ -221,13 +208,13 @@ void setup() {
   wifiManager.setClass("invert");
 
   wifiManager.setConfigPortalBlocking(false);
-  wifiManager.setConfigPortalTimeout(120);
+  //wifiManager.setConfigPortalTimeout(120);
   if(wifiManager.autoConnect()){
-      Serial.println("connected...yeey :)");
-      wifiManager.startWebPortal();
+    Serial.println("connected...yeey :)");
+    wifiManager.startWebPortal();
   } else {
-      Serial.println("non blocking config portal running");
-      //wifiManager.startConfigPortal();
+    Serial.println("non blocking config portal running");
+    //wifiManager.startConfigPortal();
   }
 
   ui.setTargetFPS(30);
@@ -238,7 +225,7 @@ void setup() {
   //Set an empty symbol
   ui.setActiveSymbol(emptySymbol);
   ui.setInactiveSymbol(emptySymbol);
-  
+
   ui.disableIndicator();
 #else
   // Customize the active and inactive symbol
@@ -282,14 +269,15 @@ void setup() {
   initData(&display);
 
   dhtDisplay.setUpdateCallback(dhtUpdateCallback);
+  //bmeDisplay.setUpdateCallback(bmeUpdateCallback);
 
   weatherDisplay.init(UPDATE_INTERVAL_SECS);
   forecastDisplay.init(UPDATE_INTERVAL_SECS);
   sunmoonDisplay.init(UPDATE_INTERVAL_SECS * 4);
   dhtDisplay.init(60);
+  bmeDisplay.init(60);
   ntcDisplay.init(5);
 
-  //multipex.init();
   ui.getUiState()->userData = parameters;
 }
 
@@ -299,6 +287,7 @@ void loop() {
     forecastDisplay.triggerUpdate();
     sunmoonDisplay.triggerUpdate();
     dhtDisplay.triggerUpdate();
+    bmeDisplay.triggerUpdate();
     ntcDisplay.triggerUpdate();
   }
 
@@ -354,7 +343,7 @@ void drawOtaProgress(unsigned int progress, unsigned int total) {
 void initData(OLEDDisplay *display) {
   drawProgress(display, 10, "Updating time...");
   configTime(UTC_OFFSET * 3600, 0, NTP_SERVERS);
- 
+
   drawProgress(display, 30, "Updating weather...");
   weatherDisplay.update();
   sunmoonDisplay.setLatLon(weatherDisplay.getData().lat, weatherDisplay.getData().lon);
@@ -371,13 +360,10 @@ void initData(OLEDDisplay *display) {
     connectToMqtt();
   }
 
-  drawProgress(display, 70, "Updating DHT Sensor");
+  drawProgress(display, 70, "Updating Sensors");
   dhtDisplay.update();
-
+  bmeDisplay.update();
   ntcDisplay.update();
-
-  //drawProgress(display, 90, "Updating thingspeak...");
-  //thingspeak.getLastChannelItem(String(THINGSPEAK_CHANNEL_ID), THINGSPEAK_API_READ_KEY);
 
   drawProgress(display, 100, "Done...");
   //delay(1000);
@@ -421,35 +407,6 @@ void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, in
 #endif
 
 }
-
-void drawUnifiedSensor(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-/*
-  UnifiedSensorFrameParameter* parameter = (UnifiedSensorFrameParameter*) state->userData;
-
-  display->setTextAlignment(TEXT_ALIGN_CENTER);
-  display->setFont(ArialMT_Plain_10);
-  display->drawString(64 + x, 0, parameter->sensors[0].getSensor());
-  display->setFont(ArialMT_Plain_16);
-  
-  dtostrf(temperature,4, 1, FormattedTemperature);
-  display->drawString(64+x, 12, "Temp: " + String(FormattedTemperature) + (IS_METRIC ? "°C": "°F"));
-  
-  dtostrf(humidity,4, 1, FormattedHumidity);
-  display->drawString(64+x, 30, "Humidity: " + String(FormattedHumidity) + "%");
-*/
-}
-
-
-void drawThingspeak(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  display->setTextAlignment(TEXT_ALIGN_CENTER);
-  display->setFont(ArialMT_Plain_10);
-  display->drawString(64 + x, 0 + y, "Thingspeak Sensor");
-  display->setFont(ArialMT_Plain_16);
-  display->drawString(64 + x, 12 + y, thingspeak.getFieldValue(0) + "°C");
-  // display->drawString(64 + x, 12 + y, thingspeak.getFieldValue(0) + (IS_METRIC ? "°C": "°F"));  // Needs code to convert Thingspeak temperature string
-  display->drawString(64 + x, 30 + y, thingspeak.getFieldValue(1) + "%");
-}
-
 
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   char time_str[11];
@@ -564,6 +521,16 @@ void connectToMqtt() {
 
 
 void dhtUpdateCallback(DHTDisplay* myDHTDisplay) {
+    ThingSpeak.setField(1, myDHTDisplay->getData().temperature);
+    ThingSpeak.setField(2, myDHTDisplay->getData().humidity);
+    ThingSpeak.setStatus("OK");
+    ThingSpeak.writeFields(THINGSPEAK_CHANNEL_ID, THINGSPEAK_API_WRITE_KEY);
+
+    String msg = "{\ttemperature: "+ String(myDHTDisplay->getData().temperature, 1) + " \n\thumidity:" + String(myDHTDisplay->getData().humidity, 1) + " }";
+    mqtt.publish("ESP8266Client-AAAAAA", msg.c_str());
+}
+
+void bmeUpdateCallback(BME280Display* myDHTDisplay) {
     ThingSpeak.setField(1, myDHTDisplay->getData().temperature);
     ThingSpeak.setField(2, myDHTDisplay->getData().humidity);
     ThingSpeak.setStatus("OK");
