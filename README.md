@@ -19,7 +19,7 @@ Based on:
 * configuration through webserver
 * send temperature data to:
   * ThingSpeak channel
-  * MQTT brocker
+  * MQTT broker
 * AWS labda function for Alexa integration
 
 ## Hardware Requirements
