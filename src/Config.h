@@ -26,7 +26,7 @@ SOFTWARE.
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#include <FS.h>
+#include <LittleFS.h>
 #include <ArduinoJson.h>
 
 class Config
@@ -34,7 +34,18 @@ class Config
  public:
 
     Config(String file) : _file(file) {
+        if (LittleFS.begin())
+        {
+            Serial.println(F("LittleFS begin done."));
+        }
+        else
+        {
+            Serial.println(F("LittleFS begin fail."));
+        }
+    }
 
+    ~Config() {
+        LittleFS.end();
     }
 
     String _file;
@@ -55,12 +66,12 @@ class Config
 
 
     void write() {
-        // Save decoded message to SPIFFS file for playback on power up.
-        File f = SPIFFS.open(_file, "w");
+        // Save decoded message to LittleFS file for playback on power up.
+        File f = LittleFS.open(_file, "w");
         if (!f) {
-            Serial.println("File open failed!");
+            Serial.println(F("File open failed!"));
         } else {
-            Serial.println("Saving settings now...");
+            Serial.println(F("Saving settings now..."));
             StaticJsonDocument<200> doc;
             doc["mqttBrokerURL"] = this->mqttBrokerURL;
             doc["mqttBrokerPort"] = this->mqttBrokerPort;
@@ -75,13 +86,14 @@ class Config
     }
 
     void read() {
-        if (SPIFFS.exists(_file) == false) {
-            Serial.println("Settings File does not yet exists.");
+        if (LittleFS.exists(_file) == false) {
+            Serial.println(F("Settings File does not yet exists."));
             return;
         }
-        File fr = SPIFFS.open(_file, "r");
+        File fr = LittleFS.open(_file, "r");
 
-        StaticJsonDocument<200> doc;
+        //StaticJsonDocument<200> doc;
+        DynamicJsonDocument doc(2048);
         DeserializationError error = deserializeJson(doc, fr);
         if (error) {
             Serial.print(F("deserializeJson() failed: "));
@@ -101,7 +113,7 @@ class Config
     }
 
     bool remove() {
-        return SPIFFS.remove(_file);
+        return LittleFS.remove(_file);
     }
 };
 
