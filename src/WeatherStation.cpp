@@ -63,7 +63,7 @@ ForecastDisplay forecastDisplay(OPEN_WEATHER_MAP_APP_ID, OPEN_WEATHER_MAP_LOCATI
 DHTDisplay dhtDisplay(DHTPIN, DHTTYPE, IS_METRIC);
 BME280Display bmeDisplay(IS_METRIC);
 void dhtUpdateCallback(DHTDisplay* myDHTDisplay);
-void bmeUpdateCallback(DHTDisplay* myDHTDisplay);
+void bmeUpdateCallback(BME280Display* myDHTDisplay);
 NTCDisplay ntcDisplay(DHTPIN, IS_METRIC);
 SunMoonDisplay sunmoonDisplay(0, 0, &dstAdjusted);
 
@@ -275,7 +275,7 @@ void setup() {
   initData(&display);
 
   dhtDisplay.setUpdateCallback(dhtUpdateCallback);
-  //bmeDisplay.setUpdateCallback(bmeUpdateCallback);
+  bmeDisplay.setUpdateCallback(bmeUpdateCallback);
 
   weatherDisplay.init(UPDATE_INTERVAL_SECS);
   forecastDisplay.init(UPDATE_INTERVAL_SECS);
@@ -361,7 +361,7 @@ void initData(OLEDDisplay *display) {
   sunmoonDisplay.update();
 
   //Connect to MQTT
-  if (config.mqttBrokerURL) {
+  if (config.mqttBrokerURL && !config.mqttBrokerURL.isEmpty()) {
     drawProgress(display, 60, "Connecting to MQTT...");
     connectToMqtt();
   }
@@ -504,23 +504,26 @@ void connectToMqtt() {
   // Loop until we're reconnected
   if (!mqtt.connected()) {
     // Create client ID
-    String clientId = "ESP8266Client-" + String(ESP.getChipId(), HEX);
+    String clientId = "esp-" + String(ESP.getChipId(), HEX);
     Serial.println("clientId: " + clientId);
 
-    Serial.print("Attempting MQTT connection... ");
+    Serial.print(("Attempting MQTT connection to " + config.mqttBrokerURL + ":" + config.mqttBrokerPort + "... ").c_str());
+
     // Attempt to connect
-    if (mqtt.connect(clientId.c_str(), config.mqttUser.c_str(), config.mqttPassword.c_str())) {
+
+    bool connected = config.mqttUser.isEmpty() ? mqtt.connect(clientId.c_str()) : mqtt.connect(clientId.c_str(), config.mqttUser.c_str(), config.mqttPassword.c_str());
+    if (connected) {
       Serial.println("connected");
       // Once connected, publish an announcement...
       //mqtt.publish("ESP8266Client-AAAAAA", "hello world");
       // ... and resubscribe
-      mqtt.subscribe("ESP8266Client-AAAAAB");
+      //mqtt.subscribe("ESP8266Client-AAAAAB");
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqtt.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println(" try again in 30 seconds");
       // Wait 5 seconds before retrying
-      //mqttReconnectTimer.once(5, connectToMqtt);
+      mqttReconnectTimer.once(30, connectToMqtt);
     }
   }
 }
@@ -532,16 +535,31 @@ void dhtUpdateCallback(DHTDisplay* myDHTDisplay) {
     ThingSpeak.setStatus("OK");
     ThingSpeak.writeFields(THINGSPEAK_CHANNEL_ID, THINGSPEAK_API_WRITE_KEY);
 
-    String msg = "{\ttemperature: "+ String(myDHTDisplay->getData().temperature, 1) + " \n\thumidity:" + String(myDHTDisplay->getData().humidity, 1) + " }";
-    mqtt.publish("ESP8266Client-AAAAAA", msg.c_str());
+    String msg = "{\t\"temperature\": "+ String(myDHTDisplay->getData().temperature, 1) +
+      ",\n\t\"humidity\":" + String(myDHTDisplay->getData().humidity, 1) +
+      " }";
+    mqtt.publish(("esp/" + config.deviceName + "/sensor/dht").c_str(), msg.c_str());
+    //mqtt.publish("sensor/dht/temperature", String(myDHTDisplay->getData().temperature, 1).c_str());
+    //mqtt.publish("sensor/dht/humidity", String(myDHTDisplay->getData().humidity, 1).c_str());
 }
 
-void bmeUpdateCallback(BME280Display* myDHTDisplay) {
-    ThingSpeak.setField(1, myDHTDisplay->getData().temperature);
-    ThingSpeak.setField(2, myDHTDisplay->getData().humidity);
+void bmeUpdateCallback(BME280Display* myBMEDisplay) {
+    ThingSpeak.setField(1, myBMEDisplay->getData().temperature);
+    ThingSpeak.setField(2, myBMEDisplay->getData().humidity);
+    ThingSpeak.setField(3, myBMEDisplay->getData().pressure);
+    ThingSpeak.setField(4, myBMEDisplay->getData().altitude);
     ThingSpeak.setStatus("OK");
-    ThingSpeak.writeFields(THINGSPEAK_CHANNEL_ID, THINGSPEAK_API_WRITE_KEY);
+    ThingSpeak.writeFields(THINGSPEAK_CHANNEL_ID_2, THINGSPEAK_API_WRITE_KEY_2);
 
-    String msg = "{\ttemperature: "+ String(myDHTDisplay->getData().temperature, 1) + " \n\thumidity:" + String(myDHTDisplay->getData().humidity, 1) + " }";
-    mqtt.publish("ESP8266Client-AAAAAA", msg.c_str());
+    String msg = "{\t\"temperature\": "+ String(myBMEDisplay->getData().temperature, 1) +
+      ",\n\t\"humidity\":" + String(myBMEDisplay->getData().humidity, 1) +
+      ",\n\t\"pressure\":" + String(myBMEDisplay->getData().pressure, 1) +
+      ",\n\t\"altitude\":" + String(myBMEDisplay->getData().altitude, 1) +
+      " }";
+      //(config.deviceName != NULL && config.deviceName.isEmpty() ? config.deviceName : chipId)
+    mqtt.publish(("esp/" + config.deviceName + "/sensor/bme").c_str(), msg.c_str());
+    //mqtt.publish("sensor/bme/temperature", String(myBMEDisplay->getData().temperature, 1).c_str());
+    //mqtt.publish("sensor/bme/humidity", String(myBMEDisplay->getData().humidity, 1).c_str());
+    //mqtt.publish("sensor/bme/pressure", String(myBMEDisplay->getData().pressure, 1).c_str());
+    //mqtt.publish("sensor/bme/altitude", String(myBMEDisplay->getData().altitude, 1).c_str());
 }

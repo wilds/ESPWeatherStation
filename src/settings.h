@@ -129,9 +129,13 @@ const boolean IS_METRIC = true;
 
 
 //Thingspeak Settings
-const unsigned long THINGSPEAK_CHANNEL_ID = 900047;
+const unsigned long THINGSPEAK_CHANNEL_ID = 0;
 const char* THINGSPEAK_API_READ_KEY = "";
-const char* THINGSPEAK_API_WRITE_KEY = "5S8TFUEEKERX9IUA";
+const char* THINGSPEAK_API_WRITE_KEY = "";
+
+const unsigned long THINGSPEAK_CHANNEL_ID_2 = 0;
+const char* THINGSPEAK_API_READ_KEY_2 = "";
+const char* THINGSPEAK_API_WRITE_KEY_2 = "";
 
 #ifdef spiOLED
 SSD1306Spi display(OLED_RESET, OLED_DC, OLED_CS);  // SPI OLED
