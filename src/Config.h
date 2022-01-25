@@ -58,6 +58,8 @@ class Config
 
     String apiKey = "";
 
+    String deviceName = String(ESP.getChipId(), HEX);
+
     // Date and Time
     float UtcOffset = -7; // Hour offset from GMT for your timezone
     boolean IS_24HOUR = false;     // 23:00 millitary 24 hour clock
@@ -80,6 +82,7 @@ class Config
             doc["apiKey"] = this->apiKey;
             doc["UtcOffset"] = this->UtcOffset;
             doc["is24hour"] = this->IS_24HOUR;
+            doc["deviceName"] = this->deviceName;
             serializeJson(doc, f);
         }
         f.close();
@@ -108,6 +111,7 @@ class Config
         this->apiKey = doc["apiKey"].as<String>();
         this->UtcOffset = doc["UtcOffset"].as<float>();
         this->IS_24HOUR = doc["is24hour"].as<int>();
+        this->deviceName = doc["deviceName"].as<String>();
 
         fr.close();
     }

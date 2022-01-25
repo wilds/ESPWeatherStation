@@ -152,6 +152,7 @@ WiFiManagerParameter mqttBrokerPort("mqttBrokerPort", "Broker Port", String(conf
 WiFiManagerParameter mqttUser("mqttUser", "User", config.mqttUser.c_str(), 255);
 WiFiManagerParameter mqttPassword("mqttPassword", "Password", config.mqttPassword.c_str(), 255, "input='password'");
 WiFiManagerParameter mqttApiKey("mqttApiKey", "Token", config.apiKey.c_str(), 255);
+WiFiManagerParameter deviceName("deviceName", "Device Name", config.deviceName.c_str(), 255);
 
 //TODO https://github.com/ThingPulse/esp8266-weather-station/blob/master/examples/SunMoonCalcDemo/SunMoonCalcDemo.ino
 //https://www.wunderground.com/hourly/it/cosenza/39.30,16.25
@@ -164,6 +165,10 @@ void saveParamCallback(){
   config.mqttUser = wifiManager.server->arg("mqttUser");
   config.mqttPassword = wifiManager.server->arg("mqttPassword");
   config.apiKey = wifiManager.server->arg("mqttApiKey");
+  config.deviceName = wifiManager.server->arg("deviceName");
+
+  config.write();
+  ESP.restart();
 
 }
 
@@ -200,6 +205,7 @@ void setup() {
   wifiManager.addParameter(&mqttUser);
   wifiManager.addParameter(&mqttPassword);
   wifiManager.addParameter(&mqttApiKey);
+  wifiManager.addParameter(&deviceName);
   wifiManager.setSaveParamsCallback(saveParamCallback);
 
   std::vector<const char *> menu = {"wifi", "info", "param", "sep", "restart", "exit"};
