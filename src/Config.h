@@ -37,6 +37,7 @@ class Config
         if (LittleFS.begin())
         {
             Serial.println(F("LittleFS begin done."));
+            read();
         }
         else
         {

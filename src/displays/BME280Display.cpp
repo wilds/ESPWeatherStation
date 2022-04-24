@@ -33,7 +33,7 @@ BME280Display::BME280Display(bool metric) : bme() {
 
 void BME280Display::init(float seconds) {
 
-  unsigned status = bme.begin();
+  unsigned status = bme.begin(BME280_ADDRESS_ALTERNATE);
 
   if (!status) {
       Serial.println("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");

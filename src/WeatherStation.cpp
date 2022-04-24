@@ -168,7 +168,7 @@ void saveParamCallback(){
   config.deviceName = wifiManager.server->arg("deviceName");
 
   config.write();
-  ESP.restart();
+  //ESP.restart();
 
 }
 
@@ -179,7 +179,7 @@ void setup() {
   Serial.begin(115200);
 
   //Init config
-  config.read();
+  //config.read();
 
   // initialize display
   display.init();
@@ -474,7 +474,7 @@ int8_t getWifiQuality() {
 }
 
 void initMqtt() {
-  if (config.mqttBrokerURL) {
+  if (config.mqttBrokerURL && !config.mqttBrokerURL.isEmpty()) {
     mqtt.setServer(config.mqttBrokerURL.c_str(), config.mqttBrokerPort);
     mqtt.setCallback(callback);
   }
@@ -483,7 +483,8 @@ void initMqtt() {
 void updateMqtt() {
   //if (!mqtt.connected()) {
   //  previusConnected = false;
-  //  connectToMqtt();
+  //  if (!mqttReconnectTimer.active())
+  //    connectToMqtt();
   //} else {
     mqtt.loop();
   //}
@@ -518,6 +519,7 @@ void connectToMqtt() {
       //mqtt.publish("ESP8266Client-AAAAAA", "hello world");
       // ... and resubscribe
       //mqtt.subscribe("ESP8266Client-AAAAAB");
+      mqttReconnectTimer.detach();
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqtt.state());
